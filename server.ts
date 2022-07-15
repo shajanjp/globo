@@ -1,24 +1,40 @@
-import {
-  WebSocketClient,
-  WebSocketServer,
-} from "https://deno.land/x/websocket@v0.1.4/mod.ts";
-import { serve } from "https://deno.land/std@0.148.0/http/server.ts";
-import { v4 } from "https://deno.land/std/uuid/mod.ts";
-const wss = new WebSocketServer(8080);
-const port = 3000;
+const server = Deno.listen({ port: 8080 });
+const socketPool: Set<any> = new Set();
 
-wss.on("connection", (ws: WebSocketClient) => {
-  console.log("connection");
-  ws.on("message", (message: string) => {
-    console.log(message);
-    ws.send(message);
-  });
-  ws.on("close", () => {
-    removeFromSocketPool(ws);
-  });
-});
+for await (const conn of server) {
+  handle(conn);
+}
 
-const handler = (request: Request): Response => {
+async function handle(conn: Deno.Conn) {
+  const httpConn = Deno.serveHttp(conn);
+  for await (const requestEvent of httpConn) {
+    await requestEvent.respondWith(handleReq(requestEvent.request));
+  }
+}
+
+function handleReq(req: Request): Response {
+  const upgrade = req.headers.get("upgrade") || "";
+  if (upgrade.toLowerCase() != "websocket") {
+    return apiHandler(req);
+    // return new Response("request isn't trying to upgrade to websocket.");
+  }
+  const { socket, response } = Deno.upgradeWebSocket(req);
+  socket.onopen = () => {
+    socketPool.add(socket);
+    console.log("socket opened");
+  };
+  socket.onmessage = (e) => {
+    console.log("socket message:", e.data);
+    socket.send(new Date().toString());
+  };
+  socket.onerror = (e) => console.log("socket errored:", e);
+  socket.onclose = () => {
+    socketPool.delete(socket);
+  };
+  return response;
+}
+
+function apiHandler(request: Request): Response {
   const path = request.url.split("/")[3];
   let responseBody = {};
 
@@ -38,17 +54,10 @@ const handler = (request: Request): Response => {
       "content-type": "application/json; charset=utf-8",
     },
   });
-};
-
-function removeFromSocketPool(sock) {
-  console.log("remove", sock);
 }
 
 function broadcastMessage(message: string) {
-  for (const client of wss.clients) {
-    client.send(message);
+  for (const client of socketPool) {
+    client.send("test message");
   }
 }
-
-console.log(`HTTP webserver running. Access it at: http://localhost:8080/`);
-await serve(handler, { port });
