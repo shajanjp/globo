@@ -74,6 +74,7 @@ async function handleRootRequest() {
         padding: 0px;
         margin: 0px;
         background: #efefef;
+        font-family: Verdana, sans-serif;
       }
       
       .button-group {
@@ -103,7 +104,6 @@ async function handleRootRequest() {
         text-align: center;
         padding: 0px 1em;
         text-transform: capitalize;
-        font-family: Verdana, sans-serif;
         -webkit-touch-callout: none; /* iOS Safari */
         -webkit-user-select: none; /* Safari */
         -khtml-user-select: none; /* Konqueror HTML */
@@ -118,6 +118,7 @@ async function handleRootRequest() {
         width: 3em;
         height: 3em;
       }
+
       #selected-color {
         position: fixed;
         bottom: -5em;
@@ -125,6 +126,22 @@ async function handleRootRequest() {
         width: 100%;
         /* background: red; */
         box-shadow: 0px -1em 6em white;
+      }
+
+      #message{
+        position: fixed;
+        padding: 1em; 
+        text-align: center;
+        top: 1em;
+        width: 80vw;
+        border: 2px solid #888;
+      }
+
+      #message span{
+        color: red;
+        position: absolute;
+        right: 1em;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -134,14 +151,26 @@ async function handleRootRequest() {
       <div id="next-color"></div>  
       <div id="next-button" onclick="setNextColor()">Send ambient notification</div>
     </div>
-    
+  
+    <div id="message">
+      <span title="close" onclick="closeHint()">X</span>
+      <p>
+        Click on the below button to send a notification to my table lamp. A random color is selected everytime you click the button.
+      </p>  
+      <p>
+        The color you see in the bottom is the current color of my table lamp. If the color is changing without your interaction, someone else is playing with it. Read more details about the lamp here.  
+      </p>
+    </div>
+  
     <script>
       const nextColor = document.getElementById('next-color');
       const selectedColor =  document.getElementById('selected-color');
+      const messageBox = document.getElementById('message'); 
       const colors = [{ r: 255, g: 0, b: 0 }, { r: 0, g: 255, b: 0 }, { r: 0, g: 0, b: 255 }, { r: 255, g: 255, b: 0 }, { r: 0, g: 255, b: 255 }, { r: 255, g: 0, b: 255 }];
       let currentColorIndex = 0;
       const socket = new WebSocket('wss://globo.deno.dev');
       
+  
       socket.addEventListener('open', function (event) {
         socket.send('hello from visitor');
       });
@@ -149,6 +178,10 @@ async function handleRootRequest() {
       // Listen for messages
       socket.addEventListener('message', function (event) {
         console.log('Message from server', event.data);
+        
+        try {
+          setSelectedColor(JSON.parse(event.data));
+        } catch(e){}
       });
   
       function setNextColor(){
@@ -159,12 +192,21 @@ async function handleRootRequest() {
         }
         console.log(getRGBColorString(colors[currentColorIndex]))
         socket.send(JSON.stringify(colors[currentColorIndex]))
-        selectedColor.style.boxShadow = '0px -1em 6em ' + getRGBColorString(colors[currentColorIndex]);
+        setSelectedColor(colors[currentColorIndex]);
         nextColor.style.backgroundColor = getRGBColorString(colors[currentColorIndex]);
+      }
+       
+      function setSelectedColor(rgbColor){
+        console.log('0px -1em 6em ' + getRGBColorString(rgbColor), rgbColor);
+        selectedColor.style.boxShadow = '0px -1em 6em ' + getRGBColorString(rgbColor);
       }
   
       function getRGBColorString(rgbColor){
         return 'rgb(' + rgbColor.r +','+ rgbColor.g + ','+ rgbColor.b + ')' 
+      }
+  
+      function closeHint(){
+        messageBox.style.display = 'none';
       }
     </script>
   </body>
