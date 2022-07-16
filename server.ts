@@ -25,7 +25,7 @@ function handleReq(req: Request): Response {
   };
   socket.onmessage = (e) => {
     console.log("socket message:", e.data);
-    socket.send(new Date().toString());
+    broadcastMessage(e.data);
   };
   socket.onerror = (e) => console.log("socket errored:", e);
   socket.onclose = () => {
