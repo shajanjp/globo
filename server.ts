@@ -43,6 +43,14 @@ function apiHandler(request: Request): Response {
   switch (resource) {
     case "broadcast": {
       ({ body, status } = handleBroadcastRequest(request, params));
+      break;
+    }
+
+    default: {
+      body = {
+        status: "success",
+      };
+      status = 200;
     }
   }
 
@@ -66,9 +74,9 @@ function handleBroadcastRequest(request, params) {
 
   return {
     body: {
-      status: "success",
+      message: "message broadcasted successfully",
     },
-    status: 204,
+    status: 200,
   };
 }
 
