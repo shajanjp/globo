@@ -35,29 +35,47 @@ function handleReq(req: Request): Response {
 }
 
 function apiHandler(request: Request): Response {
-  const path = request.url.split("/")[3];
-  let responseBody = {};
+  const resourcePath = request.url.split("/")[3];
+  const [resource, params] = resourcePath.split("?");
+  let body = {};
+  let status = 200;
 
-  switch (path) {
+  switch (resource) {
     case "broadcast": {
-      broadcastMessage("sample message");
-
-      responseBody = {
-        status: "done",
-      };
+      ({ body, status } = handleBroadcastRequest(request, params));
     }
   }
 
-  return new Response(JSON.stringify(responseBody), {
-    status: 200,
+  return new Response(JSON.stringify(body), {
+    status,
     headers: {
       "content-type": "application/json; charset=utf-8",
     },
   });
 }
 
+function handleBroadcastRequest(request, params) {
+  let queryParams = params.split("&").reduce((acc, obj) => {
+    const paramSplit = obj.split("=");
+    acc[paramSplit[0]] = paramSplit[1];
+
+    return acc;
+  }, {});
+
+  broadcastMessage(queryParams.message);
+
+  return {
+    body: {
+      status: "success",
+    },
+    status: 204,
+  };
+}
+
 function broadcastMessage(message: string) {
   for (const client of socketPool) {
-    client.send("test message");
+    client.send(message);
   }
 }
+
+process.on("unhandledRejection", (e) => console.log(e));
