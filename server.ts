@@ -158,7 +158,7 @@ async function handleRootRequest() {
           currentColorIndex++;
         }
         console.log(getRGBColorString(colors[currentColorIndex]))
-        socket.send(colors[currentColorIndex])
+        socket.send(JSON.stringify(colors[currentColorIndex]))
         selectedColor.style.boxShadow = '0px -1em 6em ' + getRGBColorString(colors[currentColorIndex]);
         nextColor.style.backgroundColor = getRGBColorString(colors[currentColorIndex]);
       }
